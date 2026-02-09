@@ -51,15 +51,40 @@ func Interval(d time.Duration) func() time.Duration {
 	}
 }
 
-// RandInterval 生成一个基于min开区间，max闭区间的随机数*unit，如果min = max则直接返回min*unit
-func RandInterval(min, max int, unit time.Duration) func() time.Duration {
+// RandInterval 生成一个基于min开区间，max闭区间的随机数 * base，如果min = max则直接返回min*unit
+func RandInterval(min, max int, base time.Duration) func() time.Duration {
 	if min > max {
 		max, min = min, max
 	}
 	return func() time.Duration {
 		if min == max {
-			return time.Duration(min) * unit
+			return time.Duration(min) * base
 		}
-		return time.Duration(rand.Intn(max-min)+min) * unit
+		return time.Duration(rand.Intn(max-min)+min) * base
+	}
+}
+
+// RandExponentialBackoff 指数退避值+随机值
+func RandExponentialBackoff(max int, base time.Duration, rMin, rMax int, rBase time.Duration) func() time.Duration {
+	num := 1
+	fn := RandInterval(rMin, rMax, rBase)
+	return func() time.Duration {
+		d := time.Duration(num) * base
+		if num <<= 1; num > max && max > -1 {
+			num = max
+		}
+		return d + fn()
+	}
+}
+
+// ExponentialBackoff 指数退避，max计算次幂的最大值，base 时间单位
+func ExponentialBackoff(max int, base time.Duration) func() time.Duration {
+	num := 1
+	return func() time.Duration {
+		d := time.Duration(num) * base
+		if num <<= 1; num > max && max > -1 {
+			num = max
+		}
+		return d
 	}
 }
