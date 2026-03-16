@@ -6,25 +6,23 @@ import (
 	"time"
 )
 
-// RetryContext 执行fn回调函数最大次数n，每次执行间隔时间interval，num必须大于0否则panic
-func RetryContext(ctx context.Context, n int, interval func() time.Duration, fn func() error) (err error) {
-	if n <= 0 {
-		panic("num must be > 0")
-	}
+// DoContext 执行fn回调函数最大次数n，每次执行间隔时间interval，num <= 0无限次数重试
+func DoContext(ctx context.Context, n int, interval func() time.Duration, fn func(ctx context.Context) error) (err error) {
 	curCtx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 	go func() {
 		defer cancel()
+		count := 0
 		for {
 			select {
 			case <-ctx.Done():
 				err = ctx.Err()
 				return
 			default:
-				if err = fn(); err == nil {
+				if err = fn(curCtx); err == nil {
 					return
 				}
-				if n--; n < 1 {
+				if count++; n > 0 && count >= n {
 					return
 				}
 				time.Sleep(interval())
@@ -39,9 +37,9 @@ func RetryContext(ctx context.Context, n int, interval func() time.Duration, fn 
 	}
 }
 
-// Retry 执行fn回调函数最大次数n，每次执行间隔时间interval，num必须大于0否则panic
-func Retry(num int, interval func() time.Duration, fn func() error) (err error) {
-	return RetryContext(context.Background(), num, interval, fn)
+// Do 执行fn回调函数最大次数n，每次执行间隔时间interval，num <= 0无限次数重试
+func Do(num int, interval func() time.Duration, fn func(ctx context.Context) error) (err error) {
+	return DoContext(context.Background(), num, interval, fn)
 }
 
 // Interval 返回 d

@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-func TestRetry(t *testing.T) {
-	err := Retry(3, RandInterval(1, 3, time.Second), func() error {
+func TestDo(t *testing.T) {
+	err := Do(3, RandInterval(1, 3, time.Second), func(ctx context.Context) error {
 		n := rand.Int()
 		log.Println("n", n)
 		if n%2 == 0 {
@@ -22,10 +22,10 @@ func TestRetry(t *testing.T) {
 	fmt.Println(err)
 }
 
-func TestRetryContext(t *testing.T) {
+func TestDoContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
 	defer cancel()
-	err := RetryContext(ctx, 10, RandInterval(1, 3, time.Second), func() error {
+	err := DoContext(ctx, 10, RandInterval(1, 3, time.Second), func(ctx context.Context) error {
 		log.Println("running......")
 		return errors.New("error")
 	})
@@ -35,7 +35,7 @@ func TestRetryContext(t *testing.T) {
 
 func TestExponentialBackoff(t *testing.T) {
 	// 重试6次，时间间隔为指数退幂最大休眠时间为16秒（1、2、4、8、16、16......）
-	err := Retry(6, ExponentialBackoff(16, time.Second), func() error {
+	err := Do(6, ExponentialBackoff(16, time.Second), func(ctx context.Context) error {
 		log.Println("running......")
 		return errors.New("error")
 	})
@@ -53,7 +53,7 @@ func TestExponentialBackoff(t *testing.T) {
 
 func TestRandExponentialBackoff(t *testing.T) {
 	// 重试6次，时间间隔为指数退幂最大休眠时间为16秒（1、2、4、8、16、16......）加上随机时间
-	err := Retry(6, RandExponentialBackoff(16, time.Second, 100, 300, time.Millisecond), func() error {
+	err := Do(6, RandExponentialBackoff(16, time.Second, 100, 300, time.Millisecond), func(ctx context.Context) error {
 		log.Println("running......")
 		return errors.New("error")
 	})
